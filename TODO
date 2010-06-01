@@ -1,0 +1,19 @@
+Code:
+ * EAGI?
+
+Add records for events:
+apps/app_meetme.c: "MeetmeJoin"
+apps/app_meetme.c: "MeetmeTalking"
+apps/app_meetme.c: "MeetmeStopTalking"
+apps/app_meetme.c: "MeetmeLeave"
+cdr/cdr_manager.c:	"Cdr"
+
+Documentation:
+
+Document all records in the EDoc. 
+ * manager returns lots of records
+
+Testing:
+
+agi:send_image(ChannelPid, "image")
+agi:send_text(ChannelPid, "Text to send...")

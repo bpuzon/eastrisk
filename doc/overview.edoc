@@ -1,0 +1,102 @@
+@title Eastrisk - Erlang to Asterisk Interface
+@author Oscar Hellström <oscar@erlang-consulting.com>
+@copyright 2006 Erlang Trading and Consulting
+@version 0.0.2, 2005-07-24
+
+@doc
+<h2>Introduction</h2>
+<p>
+Eastrisk consists of two separate parts, AGI, Asterisk Gateway Intefrace, and
+the Asterisk Manager Interface.
+</p>
+<h2>AGI</h2>
+<p>
+The Asterisk Gateway Interface is a way for external programs to control the
+dialplan. An AGI application is usually used to do advanced logic, or
+communicate with external resources, such as Mnesia databases, Erlang
+applications etc.
+The Eastrisk application is capable of doing both FastAGI and normal AGI.
+</p>
+<p>
+<h3>AGI</h3>
+The Erlang AGI interface consists of both an Erlang application and a small
+program written in C. The C program will be executed by Asterisk and pass on
+information to a Erlang node through TCP/IP, usually on port 6666.
+To use the AGI, place the binary created from the C sources in the 
+<code>agi-bin</code> (usually in <code>/var/lib/asterisk/</code>) directory
+and add something similar to<br />
+<code>exten => _X.,1,AGI(erl.agi)</code><br />
+to your dialplan.
+</p>
+<h3>FastAGI</h3>
+<p>
+FastAGI allows AGI scripts to be executed over a network and thus eliminates
+the use of C code to connect to the AGI server.
+To use the FastAGI put something similar to 
+<code>exten => _X.,1,AGI(agi://localhost:6666)</code><br />
+in your dialplan.
+</p>
+<h3>Using the connection:</h3>
+<p>
+When the AGI Sever receives a connection an {@link agi_channel}
+process is spawned. When this
+process has initialised it will notify any added event handlers (see
+gen_event(3)) through the {@link agi_events}. The event handler will be
+supplied with channel environment variables and the pid of the channel. The
+event handler should then spawn a process which will communicate with the AGI
+channel using the {@link agi} module.
+</p>
+<h3>Example of simple AGI session:</h3>
+<p>
+The event handler:<br />
+<pre>
+EventHandler:handle_event({new_channel, ChannelPid, ChannelEnv}, State) ->
+    spawn(agi_com, start, [ChannelPid, ChannelEnv]),
+    {ok, State}
+</pre>
+</p>
+<p>
+agi_com:<br />
+<pre>
+agi_com:start(ChannelPid, ChannelEnv) ->
+    agi:answer(ChannelPid),
+    case agi:stream_file(ChannelPid, "filename", "123") of
+		{ok, {Value, _Endpos}} ->
+			save_data(Value);
+		_Else -> % never pressed any digits / hung up
+			ok
+	end,
+    agi:hangup(ChannelPid),
+    agi_channel:close(ChannelPid).
+</pre>
+</p>
+To disable the AGI server to run, set the environment variable 
+<code>agi_server</code> to <code>false</code> before the application is started.
+<h2>Asterisk Manager Interface</h2>
+<p>
+The Asterisk Manager Interface is used to allow a program to issue commands on
+an Asterisk server and also listen to PBX events.
+The Erlang Asterisk Manager interface
+can be used in two ways, either as a behaviour with a callback module or as an
+by subscribing to events from an event manager.
+</p>
+<h3>Manager Event Manager</h3>
+<p>
+To use the manager event manager, make sure that the environment variables
+<code>mgr_name</code> and <code>mgr_secret</code> are set appropriately.
+Then use {@link ast_manager_events} to subscribe to events.
+</p>
+<h3>Manager behaviour</h3>
+<p>
+To use the Manager interface as a behaviour, just add
+<code>-behaviour(manager).</code> and make sure to implement
+<code>init/1</code>, <code>handle_event/2</code>, <code>code_change/3</code> and
+<code>terminate/2</code>.
+</p>
+<p>
+Please note that you have to set the environment variable
+<code>manager_server</code> to <code>false</code> before the application is
+started to be able to do this. Or, don't start the application, but just use the
+behaviour.
+</p>
+@end

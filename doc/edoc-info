@@ -1,0 +1,3 @@
+{application,'Eastrisk'}.
+{packages,[]}.
+{modules,[agi,agi_channel,agi_events,agi_lib,ast_manager,ast_manager_events]}.
